@@ -628,6 +628,7 @@ class Controller:
             sync_from_server_errors = self.notes_db.sync_full()
 
         except SyncError as e:
+            logging.error("Sync error: '%s'" % e.message)
             self.view.show_error('Sync error', e.message)
 
         else:

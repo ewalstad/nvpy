@@ -21,6 +21,7 @@ except ImportError:
     except ImportError:
         # For Google AppEngine
         from django.utils import simplejson as json
+import logging
 
 AUTH_URL = 'https://simple-note.appspot.com/api/login'
 DATA_URL = 'https://simple-note.appspot.com/api2/data'
@@ -54,6 +55,10 @@ class Simplenote(object):
             res = urllib2.urlopen(request).read()
             token = urllib2.quote(res)
         except IOError: # no connection exception
+            logging.error(
+                "Error authenticating with the Simplenote server at: "
+                "'%s'" % AUTH_URL
+            )
             token = None
         return token
 
@@ -92,8 +97,15 @@ class Simplenote(object):
         try:
             response = urllib2.urlopen(request)
         except HTTPError, e:
+            logging.error(
+                "HTTPError while getting the note from the Simplenote server: "
+                "'%s'" % e)
             return e, -1
         except IOError, e:
+            logging.error(
+                "IOError while getting the note from the Simplenote server: "
+                "'%s'" % e
+            )
             return e, -1
         note = json.loads(response.read())
         # use UTF-8 encoding
@@ -139,6 +151,10 @@ class Simplenote(object):
         try:
             response = urllib2.urlopen(request).read()
         except IOError, e:
+            logging.error(
+                "IOError while updating the note on the Simplenote server: "
+                "'%s'" % e
+            )
             return e, -1
         return json.loads(response), 0
 
@@ -200,7 +216,11 @@ class Simplenote(object):
             request = Request(INDX_URL+params)
             response = json.loads(urllib2.urlopen(request).read())
             notes["data"].extend(response["data"])
-        except IOError:
+        except IOError, e:
+            logging.error(
+                "IOError while getting the note list from the Simplenote server: "
+                "'%s'" % e
+            )
             status = -1
 
         # get additional notes if bookmark was set in response
@@ -216,7 +236,11 @@ class Simplenote(object):
                 request = Request(INDX_URL+params)
                 response = json.loads(urllib2.urlopen(request).read())
                 notes["data"].extend(response["data"])
-            except IOError:
+            except IOError, e:
+                logging.error(
+                    "IOError while getting the note list of bookmarked notes "
+                    "from the Simplenote server: '%s'" % e
+                )
                 status = -1
 
         # parse data fields in response
@@ -270,6 +294,10 @@ class Simplenote(object):
         try:
             urllib2.urlopen(request)
         except IOError, e:
+            logging.error(
+                "IOError while deleting the note '%s' from the Simplenote server: "
+                "'%s'" % (str(note_id), e)
+            )
             return e, -1
         return {}, 0
 
@@ -282,6 +310,7 @@ class Request(urllib2.Request):
     def __init__(self, url, data=None, headers={}, origin_req_host=None,
                 unverifiable=False, method=None):
         urllib2.Request.__init__(self, url, data, headers, origin_req_host, unverifiable)
+        logging.debug("Request URL: '%s'" % url)
         self.method = method
 
     def get_method(self):
